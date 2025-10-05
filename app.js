@@ -12,11 +12,15 @@ mongoose
   })
   .catch(console.error);
 
-const routes = require("./routes");
-app.use(routes);
+// const routes = require("./routes");
+// app.use(routes);
 app.use(express.json());
 
-app.use(express.json());
+app.use((req, res, next) => {
+  req.user = { _id: "61eade4c6d5acf558c42d9b8" };
+  next();
+});
+
 app.use("/", mainRouter);
 
 app.listen(PORT, () => {

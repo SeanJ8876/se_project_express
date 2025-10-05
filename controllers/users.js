@@ -7,8 +7,9 @@ const getUsers = (req, res) => {
 };
 
 const createUser = (req, res) => {
-  const { name, about, avatar } = req.body;
-  User.create({ name, about, avatar })
+  console.log(req.body);
+  const { name, avatar } = req.body;
+  User.create({ name, avatar })
     .then((user) => res.status(201).send(user))
     .catch((err) => {
       if (err.name === "ValidationError") {
@@ -24,15 +25,22 @@ const createUser = (req, res) => {
 const getUserById = (req, res) => {
   const { userId } = req.params;
   User.findById(userId)
-    .orFail(() => new Error("NotFound"))
+    .orFail(() => {
+      const error = new Error("User ID Not Found");
+      error.statusCode = 404;
+      throw error;
+    })
     .then((user) => {
       res.status(200).send(user);
     })
     .catch((err) => {
-      if (err.name === "NotFound") {
+      console.log(err);
+      if (err.statusCode === 404) {
         res.status(404).send({ message: err.message });
       } else if (err.name === "CastError") {
-        res.status(500).send({ message: err.message });
+        res.status(400).send({ message: "Invalid user ID" });
+      } else {
+        res.status(500).send({ message: "An error occurred on the server" });
       }
     });
 };

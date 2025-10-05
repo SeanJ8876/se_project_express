@@ -1,8 +1,9 @@
-const ClothingItems = require("../models/ClothingItems");
+const ClothingItems = require("../models/clothingItems");
 
 const createItem = (req, res) => {
+  const owner = req.user._id;
   const { name, weather, imageUrl } = req.body;
-  ClothingItems.create({ name, weather, imageUrl })
+  ClothingItems.create({ name, weather, imageUrl, owner })
     .then((item) => res.status(201).send(item))
     .catch((err) => {
       if (err.name === "ValidationError") {
@@ -45,20 +46,31 @@ const updateItem = (req, res) => {
 
 const deleteItem = (req, res) => {
   const { itemId } = req.params;
-
+  console.log(">>>>>>>>", itemId);
   ClothingItems.findByIdAndDelete(itemId)
-    .orFail(() => new Error("NotFound"))
-    .then(() => res.status(204).send())
+    .orFail(() => {
+      const error = new Error("Card ID Not Found");
+      error.name = "NotFound";
+      throw error;
+    })
+    .then((item) =>
+      ClothingItems.deleteOne(item).then(() =>
+        res.status(200).send({ message: "Item deleted successfully" })
+      )
+    )
     .catch((err) => {
+      console.log(err);
       if (err.name === "NotFound") {
         res.status(404).send({ message: err.message });
+      } else if (err.name === "CastError") {
+        return res.status(400).send({ message: "Invalid item ID" });
       } else {
         res.status(500).send({ message: err.message });
       }
     });
 };
 
-module.exports.likeItem = (req, res) => {
+const likeItem = (req, res) => {
   ClothingItems.findByIdAndUpdate(
     req.params.itemId,
     { $addToSet: { likes: req.user._id } }, // add _id to the array if it's not there yet
@@ -80,7 +92,7 @@ module.exports.likeItem = (req, res) => {
     });
 };
 
-module.exports.dislikeItem = (req, res) => {
+const dislikeItem = (req, res) => {
   ClothingItems.findByIdAndUpdate(
     req.params.itemId,
     { $pull: { likes: req.user._id } }, // remove _id from the array
@@ -107,4 +119,6 @@ module.exports = {
   getItems,
   updateItem,
   deleteItem,
+  likeItem,
+  dislikeItem,
 };
