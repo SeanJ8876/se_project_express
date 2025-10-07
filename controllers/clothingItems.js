@@ -1,17 +1,17 @@
 const ClothingItems = require("../models/clothingItems");
+const { NOT_FOUND, BAD_REQUEST, DEFAULT } = require("../utils/errors");
 
 const createItem = (req, res) => {
-  const owner = req.user._id;
   const { name, weather, imageUrl } = req.body;
-  ClothingItems.create({ name, weather, imageUrl, owner })
+  ClothingItems.create({ name, weather, imageUrl, owner: req.user._id })
     .then((item) => res.status(201).send(item))
     .catch((err) => {
       if (err.name === "ValidationError") {
         res
-          .status(400)
+          .status(BAD_REQUEST)
           .send({ message: "Invalid data provided when creating an item." });
       } else {
-        res.status(500).send({ message: err.message });
+        res.status(DEFAULT).send({ message: err.message });
       }
     });
 };
@@ -19,29 +19,7 @@ const createItem = (req, res) => {
 const getItems = (req, res) => {
   ClothingItems.find({})
     .then((items) => res.status(200).send(items))
-    .catch((err) => res.status(500).send({ message: "Error from getItems" }));
-};
-
-const updateItem = (req, res) => {
-  const { itemId } = req.params;
-  const { name, weather, imageUrl } = req.body;
-
-  ClothingItems.findByIdAndUpdate(
-    itemId,
-    { name, weather, imageUrl },
-    { new: true, runValidators: true }
-  )
-    .orFail(() => new Error("NotFound"))
-    .then((item) => res.status(200).send(item))
-    .catch((err) => {
-      if (err.name === "NotFound") {
-        res.status(404).send({ message: err.message });
-      } else if (err.name === "ValidationError") {
-        res.status(400).send({ message: "Error from updateItem." });
-      } else {
-        res.status(500).send({ message: err.message });
-      }
-    });
+    .catch(() => res.status(DEFAULT).send({ message: "Error from getItems" }));
 };
 
 const deleteItem = (req, res) => {
@@ -59,35 +37,34 @@ const deleteItem = (req, res) => {
       )
     )
     .catch((err) => {
-      console.log(err);
       if (err.name === "NotFound") {
-        res.status(404).send({ message: err.message });
-      } else if (err.name === "CastError") {
-        return res.status(400).send({ message: "Invalid item ID" });
-      } else {
-        res.status(500).send({ message: err.message });
+        return res.status(NOT_FOUND).send({ message: "Server Error" });
       }
+      if (err.name === "CastError") {
+        return res.status(BAD_REQUEST).send({ message: "Invalid item ID" });
+      }
+      return res.status(DEFAULT).send({ message: "Server Error" });
     });
 };
 
 const likeItem = (req, res) => {
   ClothingItems.findByIdAndUpdate(
     req.params.itemId,
-    { $addToSet: { likes: req.user._id } }, // add _id to the array if it's not there yet
+    { $addToSet: { likes: req.user._id } },
     { new: true }
   )
     .then((item) => {
       if (!item) {
-        return res.status(404).send({ message: "Item not found" });
+        return res.status(NOT_FOUND).send({ message: "Item not found" });
       }
-      res.status(200).send(item);
+      return res.status(200).send(item);
     })
     .catch((err) => {
       if (err.name === "CastError") {
-        return res.status(400).send({ message: "Invalid item ID" });
+        return res.status(BAD_REQUEST).send({ message: "Invalid item ID" });
       }
-      res
-        .status(500)
+      return res
+        .status(DEFAULT)
         .send({ message: "Error liking item", error: err.message });
     });
 };
@@ -95,21 +72,21 @@ const likeItem = (req, res) => {
 const dislikeItem = (req, res) => {
   ClothingItems.findByIdAndUpdate(
     req.params.itemId,
-    { $pull: { likes: req.user._id } }, // remove _id from the array
+    { $pull: { likes: req.user._id } },
     { new: true }
   )
     .then((item) => {
       if (!item) {
-        return res.status(404).send({ message: "Item not found" });
+        return res.status(NOT_FOUND).send({ message: "Item not found" });
       }
-      res.status(200).send(item);
+      return res.status(200).send(item);
     })
     .catch((err) => {
       if (err.name === "CastError") {
-        return res.status(400).send({ message: "Invalid item ID" });
+        return res.status(BAD_REQUEST).send({ message: "Invalid item ID" });
       }
-      res
-        .status(500)
+      return res
+        .status(DEFAULT)
         .send({ message: "Error unliking item", error: err.message });
     });
 };
@@ -117,7 +94,6 @@ const dislikeItem = (req, res) => {
 module.exports = {
   createItem,
   getItems,
-  updateItem,
   deleteItem,
   likeItem,
   dislikeItem,

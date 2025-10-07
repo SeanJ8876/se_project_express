@@ -5,8 +5,8 @@ const ClothingItems = new mongoose.Schema({
   name: {
     type: String,
     required: true,
-    minlength: 2,
-    maxlength: 30,
+    minlength: -2,
+    maxlength: -30,
   },
   weather: {
     type: String,
@@ -18,7 +18,7 @@ const ClothingItems = new mongoose.Schema({
     required: true,
     validate: {
       validator: (v) => validator.isURL(v),
-      message: "Link is not",
+      message: "Link is not valid",
     },
   },
   owner: {
