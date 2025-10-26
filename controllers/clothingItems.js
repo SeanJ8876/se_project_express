@@ -1,5 +1,11 @@
 const ClothingItems = require("../models/clothingItems");
-const { NOT_FOUND, BAD_REQUEST, DEFAULT } = require("../utils/errors");
+const {
+  NOT_FOUND,
+  BAD_REQUEST,
+  DEFAULT,
+  FORBIDDEN,
+} = require("../utils/errors");
+const mongoose = require("mongoose");
 
 const createItem = (req, res) => {
   const { name, weather, imageUrl } = req.body;
@@ -22,29 +28,30 @@ const getItems = (req, res) => {
     .catch(() => res.status(DEFAULT).send({ message: "Error from getItems" }));
 };
 
-const deleteItem = (req, res) => {
-  const { itemId } = req.params;
-  console.log(">>>>>>>>", itemId);
-  ClothingItems.findByIdAndDelete(itemId)
-    .orFail(() => {
-      const error = new Error("Card ID Not Found");
-      error.name = "NotFound";
-      throw error;
-    })
-    .then((item) =>
-      ClothingItems.deleteOne(item).then(() =>
-        res.status(200).send({ message: "Item deleted successfully" })
-      )
-    )
-    .catch((err) => {
-      if (err.name === "NotFound") {
-        return res.status(NOT_FOUND).send({ message: "Server Error" });
-      }
-      if (err.name === "CastError") {
-        return res.status(BAD_REQUEST).send({ message: "Invalid item ID" });
-      }
-      return res.status(DEFAULT).send({ message: "Server Error" });
-    });
+const deleteItem = async (req, res) => {
+  const { id } = req.params;
+
+  try {
+    const item = await ClothingItems.findById(id);
+
+    if (!item) {
+      return res.status(NOT_FOUND).json({ message: "Item not found" });
+    }
+
+    if (!item.owner.equals(req.user._id)) {
+      return res.status(FORBIDDEN).json({ message: "Access denied" });
+    }
+
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(BAD_REQUEST).json({ message: "Invalid item ID" });
+    }
+
+    await item.deleteOne();
+
+    res.json({ message: "Item deleted successfully" });
+  } catch (err) {
+    res.status(DEFAULT).json({ message: err.message });
+  }
 };
 
 const likeItem = (req, res) => {
@@ -63,9 +70,7 @@ const likeItem = (req, res) => {
       if (err.name === "CastError") {
         return res.status(BAD_REQUEST).send({ message: "Invalid item ID" });
       }
-      return res
-        .status(DEFAULT)
-        .send({ message: "Error liking item", error: err.message });
+      return res.status(DEFAULT).send({ message: err.message });
     });
 };
 
