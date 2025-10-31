@@ -13,6 +13,3 @@ module.exports = {
   CONFLICT,
   UNAUTHORIZED,
 };
-
-// const ClothingItems = require("../controllers/clothingItems");
-// const { NOT_FOUND } = require("../utils/errors");

@@ -1,9 +1,8 @@
 const router = require("express").Router();
-const { getUsers, createUser, getUserById } = require("../controllers/users");
+const { getCurrentUser, editUserProfile } = require("../controllers/users");
+const auth = require("../middlewares/auth");
 
-router.use((req, res, next) => {
-  console.log("Request received for users Router");
-  next();
-});
+router.get("/me", auth, getCurrentUser);
+router.patch("/me", auth, editUserProfile);
 
 module.exports = router;

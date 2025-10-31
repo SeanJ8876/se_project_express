@@ -29,10 +29,14 @@ const getItems = (req, res) => {
 };
 
 const deleteItem = async (req, res) => {
-  const { id } = req.params;
+  const { itemId } = req.params;
 
   try {
-    const item = await ClothingItems.findById(id);
+    if (!mongoose.Types.ObjectId.isValid(itemId)) {
+      return res.status(BAD_REQUEST).json({ message: "Invalid item ID" });
+    }
+
+    const item = await ClothingItems.findById(itemId);
 
     if (!item) {
       return res.status(NOT_FOUND).json({ message: "Item not found" });
@@ -42,11 +46,7 @@ const deleteItem = async (req, res) => {
       return res.status(FORBIDDEN).json({ message: "Access denied" });
     }
 
-    if (!mongoose.Types.ObjectId.isValid(id)) {
-      return res.status(BAD_REQUEST).json({ message: "Invalid item ID" });
-    }
-
-    await item.deleteOne();
+    await ClothingItems.findByIdAndDelete(itemId);
 
     res.json({ message: "Item deleted successfully" });
   } catch (err) {

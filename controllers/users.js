@@ -21,10 +21,21 @@ const bcrypt = require("bcryptjs");
 const createUser = (req, res) => {
   const { name, avatar, email, password } = req.body;
 
+  if (!email || !password) {
+    return res.status(BAD_REQUEST).send({
+      message: "Email and password are required",
+    });
+  }
+
   bcrypt
     .hash(password, 10)
     .then((hashedPassword) => {
-      return User.create({ name, avatar, email, password: hashedPassword });
+      return User.create({
+        name,
+        avatar,
+        email: email.trim().toLowerCase(),
+        password: hashedPassword,
+      });
     })
     .then((user) => {
       const userResponse = user.toObject();
@@ -49,7 +60,15 @@ const createUser = (req, res) => {
 const login = (req, res) => {
   const { email, password } = req.body;
 
-  User.findUserByCredentials(email, password)
+  if (!email || !password) {
+    return res.status(BAD_REQUEST).send({
+      message: "Email and password are required",
+    });
+  }
+
+  const normalizedEmail = email.trim().toLowerCase();
+
+  User.findUserByCredentials(normalizedEmail, password) // Use normalizedEmail here!
     .then((user) => {
       const token = jwt.sign({ _id: user._id }, JWT_SECRET, {
         expiresIn: "7d",
