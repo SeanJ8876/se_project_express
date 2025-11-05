@@ -1,3 +1,5 @@
+const mongoose = require("mongoose");
+
 const ClothingItems = require("../models/clothingItems");
 const {
   NOT_FOUND,
@@ -5,7 +7,6 @@ const {
   DEFAULT,
   FORBIDDEN,
 } = require("../utils/errors");
-const mongoose = require("mongoose");
 
 const createItem = (req, res) => {
   const { name, weather, imageUrl } = req.body;
@@ -17,7 +18,9 @@ const createItem = (req, res) => {
           .status(BAD_REQUEST)
           .send({ message: "Invalid data provided when creating an item." });
       } else {
-        res.status(DEFAULT).send({ message: err.message });
+        res
+          .status(DEFAULT)
+          .send({ message: "An error occurred on the server" });
       }
     });
 };
@@ -48,9 +51,11 @@ const deleteItem = async (req, res) => {
 
     await ClothingItems.findByIdAndDelete(itemId);
 
-    res.json({ message: "Item deleted successfully" });
+    return res.json({ message: "Item deleted successfully" });
   } catch (err) {
-    res.status(DEFAULT).json({ message: err.message });
+    return res
+      .status(DEFAULT)
+      .json({ message: "An error occurred on the server" });
   }
 };
 
@@ -70,7 +75,9 @@ const likeItem = (req, res) => {
       if (err.name === "CastError") {
         return res.status(BAD_REQUEST).send({ message: "Invalid item ID" });
       }
-      return res.status(DEFAULT).send({ message: err.message });
+      return res
+        .status(DEFAULT)
+        .send({ message: "An error occurred on the server" });
     });
 };
 

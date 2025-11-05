@@ -1,6 +1,7 @@
+const jwt = require("jsonwebtoken");
+const bcrypt = require("bcryptjs");
 const User = require("../models/user");
 const { JWT_SECRET } = require("../utils/config");
-const jwt = require("jsonwebtoken");
 
 const {
   DEFAULT,
@@ -10,13 +11,16 @@ const {
   UNAUTHORIZED,
 } = require("../utils/errors");
 
-const getUsers = (req, res) => {
-  User.find({})
-    .then((users) => res.status(200).send(users))
-    .catch((err) => res.status(DEFAULT).send({ message: err.message }));
+const getUsers = async (req, res) => {
+  try {
+    const users = await User.find({});
+    return res.status(200).send(users);
+  } catch (err) {
+    return res
+      .status(DEFAULT)
+      .send({ message: "An error occurred on the server" });
+  }
 };
-
-const bcrypt = require("bcryptjs");
 
 const createUser = (req, res) => {
   const { name, avatar, email, password } = req.body;
@@ -27,16 +31,16 @@ const createUser = (req, res) => {
     });
   }
 
-  bcrypt
+  return bcrypt
     .hash(password, 10)
-    .then((hashedPassword) => {
-      return User.create({
+    .then((hashedPassword) =>
+      User.create({
         name,
         avatar,
         email: email.trim().toLowerCase(),
         password: hashedPassword,
-      });
-    })
+      })
+    )
     .then((user) => {
       const userResponse = user.toObject();
       delete userResponse.password;
@@ -44,16 +48,18 @@ const createUser = (req, res) => {
     })
     .catch((err) => {
       if (err.name === "ValidationError") {
-        res
+        return res
           .status(BAD_REQUEST)
           .send({ message: "Invalid data provided when creating a user." });
-      } else if (err.code === 11000) {
-        res
+      }
+      if (err.code === 11000) {
+        return res
           .status(CONFLICT)
           .send({ message: "A user with this email already exists." });
-      } else {
-        res.status(DEFAULT).send({ message: err.message });
       }
+      return res
+        .status(DEFAULT)
+        .send({ message: "An error occurred on the server" });
     });
 };
 
@@ -68,15 +74,22 @@ const login = (req, res) => {
 
   const normalizedEmail = email.trim().toLowerCase();
 
-  User.findUserByCredentials(normalizedEmail, password) // Use normalizedEmail here!
+  return User.findUserByCredentials(normalizedEmail, password)
     .then((user) => {
       const token = jwt.sign({ _id: user._id }, JWT_SECRET, {
         expiresIn: "7d",
       });
-      res.status(200).send({ message: "Login successful", user, token });
+      return res.status(200).send({ message: "Login successful", user, token });
     })
     .catch((err) => {
-      res.status(UNAUTHORIZED).send({ message: "Invalid email or password" });
+      if (err.message === "Incorrect email or password") {
+        return res
+          .status(UNAUTHORIZED)
+          .send({ message: "Invalid email or password" });
+      }
+      return res
+        .status(DEFAULT)
+        .send({ message: "An error occurred on the server" });
     });
 };
 
@@ -97,7 +110,6 @@ const editUserProfile = (req, res) => {
       res.status(200).send(user);
     })
     .catch((err) => {
-      console.log(err);
       if (err.statusCode === NOT_FOUND) {
         res.status(NOT_FOUND).send({ message: err.message });
       } else if (err.name === "CastError") {
@@ -122,7 +134,6 @@ const getCurrentUser = (req, res) => {
       res.status(200).send(user);
     })
     .catch((err) => {
-      console.log(err);
       if (err.statusCode === NOT_FOUND) {
         res.status(NOT_FOUND).send({ message: err.message });
       } else if (err.name === "CastError") {
