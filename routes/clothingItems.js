@@ -11,9 +11,12 @@ const {
 
 router.get("/", getItems);
 
-router.post("/", auth, createItem);
+router.post("/", auth, createItem, validateCardBody);
 router.delete("/:itemId", auth, deleteItem);
-router.put("/:itemId/likes", auth, likeItem);
+router.put("/:itemId/likes", auth, likeItem, validateId);
 router.delete("/:itemId/likes", auth, dislikeItem);
+
+const { errors } = require("celebrate");
+app.use(errors()); // Add this after your routes
 
 module.exports = router;

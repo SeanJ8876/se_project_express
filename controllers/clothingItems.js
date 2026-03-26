@@ -6,6 +6,7 @@ const {
   BAD_REQUEST,
   DEFAULT,
   FORBIDDEN,
+  BadRequestError,
 } = require("../utils/errors");
 
 const createItem = (req, res) => {
@@ -81,7 +82,7 @@ const likeItem = (req, res) => {
     });
 };
 
-const dislikeItem = (req, res) => {
+const dislikeItem = (req, res, next) => {
   ClothingItems.findByIdAndUpdate(
     req.params.itemId,
     { $pull: { likes: req.user._id } },
@@ -95,14 +96,12 @@ const dislikeItem = (req, res) => {
     })
     .catch((err) => {
       if (err.name === "CastError") {
-        return res.status(BAD_REQUEST).send({ message: "Invalid item ID" });
+        next(new BadRequestError("The id string is in an invalid format"));
+      } else {
+        next(err);
       }
-      return res
-        .status(DEFAULT)
-        .send({ message: "Error unliking item", error: err.message });
     });
 };
-
 module.exports = {
   createItem,
   getItems,
