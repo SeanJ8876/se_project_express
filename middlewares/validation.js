@@ -1,13 +1,14 @@
 const { Joi, celebrate } = require("celebrate");
 const validator = require("validator");
 
-const {
-  validateCardBody,
-  validateUserBody,
-  validateAuth,
-  validateId,
-} = require("./middleware/validation");
 const { validate } = require("../models/clothingItems");
+
+const validateURL = (value, helpers) => {
+  if (validator.isURL(value)) {
+    return value;
+  }
+  return helpers.error("string.uri");
+};
 
 module.exports.validateUserBody = celebrate({
   body: Joi.object().keys({
@@ -78,11 +79,3 @@ module.exports.validateUserId = celebrate({
     }),
   }),
 });
-
-module.exports = {
-  validate,
-  validateCardBody,
-  validateUserBody,
-  validateAuth,
-  validateId,
-};

@@ -9,14 +9,13 @@ const {
   dislikeItem,
 } = require("../controllers/clothingItems");
 
+const { validateCardBody, validateId } = require("../middlewares/validation");
+
 router.get("/", getItems);
 
 router.post("/", auth, createItem, validateCardBody);
 router.delete("/:itemId", auth, deleteItem);
 router.put("/:itemId/likes", auth, likeItem, validateId);
 router.delete("/:itemId/likes", auth, dislikeItem);
-
-const { errors } = require("celebrate");
-app.use(errors()); // Add this after your routes
 
 module.exports = router;

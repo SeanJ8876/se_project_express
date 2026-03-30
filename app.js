@@ -20,24 +20,18 @@ app.use(express.json());
 
 app.use(cors());
 
+app.use(requestLogger);
+
 app.use("/", mainRouter);
 
 app.use((req, res) => {
   res.status(NOT_FOUND).send({ message: "Router not found" });
 });
 
-app.listen(PORT, () => {});
-
-app.use(errorHandler);
-
-app.use(routes);
+app.use(errorLogger);
 
 app.use(errors());
 
 app.use(errorHandler);
 
-app.use(requestLogger);
-
-app.use(routes);
-
-app.use(errorLogger);
+app.listen(PORT, () => {});
