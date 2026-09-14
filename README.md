@@ -38,5 +38,5 @@ Check out [Postman - Sprint 13 Tests - Sean Jackson's Workspace](https://www.loo
 ## Deployment
 
 - **Frontend:** https://WTRA.wiki.gd
-- **Backend API:** https://api.wtra.wiki.gd _(adjust if your Nginx config proxies the backend at a different path or subdomain)_
+- **Backend API:** https://api.wtra.wiki.gd
 - **Frontend repo:** https://github.com/SeanJ8876/se_project_react
