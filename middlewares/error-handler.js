@@ -1,7 +1,15 @@
+const { INTERNAL_SERVER_ERROR } = require("../utils/errors");
+
 const errorHandler = (err, req, res, next) => {
-  const { statusCode = 500, message } = err;
+  const { statusCode = INTERNAL_SERVER_ERROR, message } = err;
+
+  console.error(err.stack || err);
+
   res.status(statusCode).send({
-    message: statusCode === 500 ? "An error occurred on the server" : message,
+    message:
+      statusCode === INTERNAL_SERVER_ERROR
+        ? "An error occurred on the server"
+        : message,
   });
 };
 

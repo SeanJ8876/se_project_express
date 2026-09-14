@@ -1,84 +1,63 @@
-const mongoose = require("mongoose");
-
 const ClothingItems = require("../models/clothingItems");
 const {
-  NOT_FOUND,
-  BAD_REQUEST,
-  DEFAULT,
-  FORBIDDEN,
   BadRequestError,
+  ForbiddenError,
+  NotFoundError,
 } = require("../utils/errors");
 
-const createItem = (req, res) => {
+const createItem = (req, res, next) => {
   const { name, weather, imageUrl } = req.body;
+
   ClothingItems.create({ name, weather, imageUrl, owner: req.user._id })
     .then((item) => res.status(201).send(item))
     .catch((err) => {
       if (err.name === "ValidationError") {
-        res
-          .status(BAD_REQUEST)
-          .send({ message: "Invalid data provided when creating an item." });
-      } else {
-        res
-          .status(DEFAULT)
-          .send({ message: "An error occurred on the server" });
+        return next(
+          new BadRequestError("Invalid data provided when creating an item.")
+        );
       }
+      return next(err);
     });
 };
 
-const getItems = (req, res) => {
+const getItems = (req, res, next) => {
   ClothingItems.find({})
     .then((items) => res.status(200).send(items))
-    .catch(() => res.status(DEFAULT).send({ message: "Error from getItems" }));
+    .catch(next);
 };
 
-const deleteItem = async (req, res) => {
-  const { itemId } = req.params;
-
-  try {
-    if (!mongoose.Types.ObjectId.isValid(itemId)) {
-      return res.status(BAD_REQUEST).json({ message: "Invalid item ID" });
-    }
-
-    const item = await ClothingItems.findById(itemId);
-
-    if (!item) {
-      return res.status(NOT_FOUND).json({ message: "Item not found" });
-    }
-
-    if (!item.owner.equals(req.user._id)) {
-      return res.status(FORBIDDEN).json({ message: "Access denied" });
-    }
-
-    await ClothingItems.findByIdAndDelete(itemId);
-
-    return res.json({ message: "Item deleted successfully" });
-  } catch (err) {
-    return res
-      .status(DEFAULT)
-      .json({ message: "An error occurred on the server" });
-  }
+const deleteItem = (req, res, next) => {
+  ClothingItems.findById(req.params.itemId)
+    .orFail(() => new NotFoundError("Item not found"))
+    .then((item) => {
+      if (!item.owner.equals(req.user._id)) {
+        throw new ForbiddenError("Access denied");
+      }
+      return ClothingItems.findByIdAndDelete(item._id).then(() =>
+        res.send({ message: "Item deleted successfully" })
+      );
+    })
+    .catch((err) => {
+      if (err.name === "CastError") {
+        return next(new BadRequestError("Invalid item ID"));
+      }
+      return next(err);
+    });
 };
 
-const likeItem = (req, res) => {
+const likeItem = (req, res, next) => {
   ClothingItems.findByIdAndUpdate(
     req.params.itemId,
     { $addToSet: { likes: req.user._id } },
     { new: true }
   )
-    .then((item) => {
-      if (!item) {
-        return res.status(NOT_FOUND).send({ message: "Item not found" });
-      }
-      return res.status(200).send(item);
-    })
+    .orFail(() => new NotFoundError("Item not found"))
+    .then((item) => res.status(200).send(item))
     .catch((err) => {
       if (err.name === "CastError") {
-        return res.status(BAD_REQUEST).send({ message: "Invalid item ID" });
+        return next(new BadRequestError("Invalid item ID"));
       }
-      return res
-        .status(DEFAULT)
-        .send({ message: "An error occurred on the server" });
+      return next(err);
     });
 };
 
@@ -88,20 +67,18 @@ const dislikeItem = (req, res, next) => {
     { $pull: { likes: req.user._id } },
     { new: true }
   )
-    .then((item) => {
-      if (!item) {
-        return res.status(NOT_FOUND).send({ message: "Item not found" });
-      }
-      return res.status(200).send(item);
-    })
+    .orFail(() => new NotFoundError("Item not found"))
+    .then((item) => res.status(200).send(item))
     .catch((err) => {
       if (err.name === "CastError") {
-        next(new BadRequestError("The id string is in an invalid format"));
-      } else {
-        next(err);
+        return next(
+          new BadRequestError("The id string is in an invalid format")
+        );
       }
+      return next(err);
     });
 };
+
 module.exports = {
   createItem,
   getItems,
