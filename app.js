@@ -32,9 +32,6 @@ app.get("/crash-test", () => {
 
 app.use("/", mainRouter);
 
-app.use((req, res, next) => {
-  return next(new NotFoundError("Route Not Found"));
-});
 
 app.use(errorLogger);
 app.use(errors());
