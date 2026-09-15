@@ -5,7 +5,6 @@ const mongoose = require("mongoose");
 const cors = require("cors");
 const { errors } = require("celebrate");
 
-const { NOT_FOUND } = require("./utils/errors");
 const { requestLogger, errorLogger } = require("./middlewares/logger");
 const errorHandler = require("./middlewares/error-handler");
 const mainRouter = require("./routes/index");
@@ -32,6 +31,9 @@ app.get("/crash-test", () => {
 
 app.use("/", mainRouter);
 
+app.use((req, res, next) => {
+  next(new NotFoundError("Requested resource not found"));
+});
 
 app.use(errorLogger);
 app.use(errors());
